@@ -1,0 +1,96 @@
+`timescale 1 ns/1 ps
+
+module NAdder(
+	input [14:0] N,
+	//if input is not 14 bits then the MACROS dont work properly because they need all the inputs and outputs to tbe of the same width=15
+	//the counter width should also be 15 bits because thats going to the input of the 15bit adder
+	input clock, rst,
+    
+	output wire[14:0] sum //ouptut is 15bits
+    );
+	 
+    //DEFINING TEMPERORY USABLE VARIABLES 
+	wire var, carryo; //carry out
+	wire[14:0] count, temp;
+	//14 bits because the n can be 255(8bit) and n+1 will be 9bits
+	//comp_output is the comparator output. comp_output=0 till the desired value is not reached by the output of the counter 
+	
+	//temp=n+1 always. we need to run the counter n+1 times because the output of the counter starts from '0'
+	//so when count=0, sum=0. //when count=1,sum=1. 
+	//so even if do n=1, then we will get the desired output sum='1', after 2 cycles of the counter
+	
+	
+	
+    //MACRO MODULE TO PERFORM ADDITION OF CURRENT NUMBER TO PREV SUM
+	ADDSUB_MACRO #(
+      .DEVICE("7SERIES"), // Target Device: "VIRTEX5", "VIRTEX6", "SPARTAN6", "7SERIES" 
+      .LATENCY(1),        // Desired clock cycle latency, 0-2
+      .WIDTH(15)          // Input / output bus width, 1-15
+   ) ADDSUB_MACRO_inst (
+      .CARRYOUT(carryo), // 1-bit carry-out output signal
+      .RESULT(sum),     // Add/sub result output, width defined by WIDTH parameter
+      .A(sum),               // Input A bus, width defined by WIDTH parameter
+      .ADD_SUB(1'b1),   // 1-bit add/sub input, high selects add, low selects subtract
+      .B(count),               // Input B bus, width defined by WIDTH parameter
+      .CARRYIN(carryo),   // 1-bit carry-in input
+      .CE(~var),             // 1-bit clock enable input
+      .CLK(clock),           // 1-bit clock input
+      .RST(rst)            // 1-bit active high synchronous reset
+   );
+	
+    //MACRO MODULE TO PERFORM ADDITION OF 1 TO COUNTER AT EVERY POSEDGE OF CLOCK. output is temp=n+1
+	ADDSUB_MACRO #(
+      .DEVICE("7SERIES"), // Target Device: "VIRTEX5", "VIRTEX6", "SPARTAN6", "7SERIES" 
+      .LATENCY(1),        // Desired clock cycle latency, 0-2
+      .WIDTH(15)          // Input / output bus width, 1-15
+   ) ADDSUB_MACRO_inst_init (
+      .CARRYOUT(), // 1-bit carry-out output signal
+      .RESULT(temp),     // Add/sub result output, width defined by WIDTH parameter
+      .A(N),               // Input A bus, width defined by WIDTH parameter
+      .ADD_SUB(1'b1),   // 1-bit add/sub input, high selects add, low selects subtract
+      .B(15'b1),               // Input B bus, width defined by WIDTH parameter
+      .CARRYIN(1'b0),   // 1-bit carry-in input
+      .CE(1'b1),             // 1-bit clock enable input
+      .CLK(clock),           // 1-bit clock input
+      .RST(1'b0)            // 1-bit active high synchronous reset
+   );
+	
+    //MACRO FOR COUNTER
+	COUNTER_TC_MACRO #(
+      .COUNT_BY(48'h000000000001), // Count by value
+      .DEVICE("7SERIES"), // Target Device: "VIRTEX5", "VIRTEX6", "7SERIES" 
+      .DIRECTION("UP"), // Counter direction, "UP" or "DOWN" 
+      .RESET_UPON_TC("FALSE"), // Reset counter upon terminal count, "TRUE" or "FALSE" 
+      .TC_VALUE(48'h000000000000), // Terminal count value
+      .WIDTH_DATA(15) // Counter output bus width, 1-15
+   ) COUNTER_TC_MACRO_inst (
+      .Q(count), // Counter output bus, width determined by WIDTH_DATA parameter 
+      .TC(), // 1-bit terminal count output, high = terminal count is reached
+      .CLK(clock), // 1-bit positive edge clock input
+      .CE(~var), // 1-bit active high clock enable input
+					// we stop the counter as soon as we reach our required output(count)=n+1
+      .RST(rst) // 1-bit active high synchronous reset
+   );
+	
+    //MACRO TO COMPARE TWO NUMBERS, USED TO STOP COUNTER AT USER INPUT
+	EQ_COMPARE_MACRO #(
+      .DEVICE("7SERIES"),       // Target Device: "VIRTEX5", "VIRTEX6","7SERIES" 
+      .LATENCY(0),              // Desired clock cycle latency, 0-2
+      .MASK(48'hFFFFFFFFFFFF),  // Select bits to be masked, must set SEL_MASK="MASK" 
+      .SEL_MASK("DYNAMIC_PATTERN"),        // "MASK" = use MASK parameter,
+                                //   "DYNAMIC_PATTERN" = use DYNAMIC_PATTERN input bus
+      .SEL_PATTERN("DYNAMIC_PATTERN"), // "STATIC_PATTERN" = use STATIC_PATTERN parameter,
+                                      //   "DYNAMIC_PATTERN = use DYNAMIC_PATTERN input bus
+      .STATIC_PATTERN(48'hFFFFFFFFFFFF), // Specify static pattern, must set SEL_PATTERN = "STATIC_PATTERN" 
+      .WIDTH(15)                // Comparator output bus width, 1-15
+   ) EQ_COMPARE_MACRO_inst (
+      .Q(var),     // 1-bit output indicating a match
+      .CE(1'b1),   // 1-bit active high input clock enable
+      .CLK(clock), // 1-bit positive edge clock input
+      .DATA_IN(temp), // Input Data Bus, width determined by WIDTH parameter 
+						// temp =n+1. we wanna run the counter for n+1 times
+      .DYNAMIC_PATTERN(count), // Input Dynamic Match/Mask Bus, width determined by WIDTH parameter 
+      .RST(rst)  // 1-bit input active high reset
+   );
+
+endmodule

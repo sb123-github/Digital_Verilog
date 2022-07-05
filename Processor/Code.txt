@@ -1,0 +1,259 @@
+/*
+Sreyan Biswas
+19EC30045
+Processor in structural design
+*/
+
+`timescale 1ns / 1ps
+module processor(data_in,out,inst,clk);
+	input [7:0]data_in,inst;
+	input clk;
+	output [7:0]out; //9 bit output for sum but for now lets keep it 8-bit
+	//wire [7:0]A,B,C,D;  //cant declare them as reg
+	
+	wire enIN,enOUT,enADD,enSUB,enMOV;
+	and(enIN,inst[7],~inst[6],~inst[5]); //100
+	and(enOUT,inst[7],~inst[6],inst[5]); //101
+	and(enADD,~inst[7],~inst[6]); //00
+	and(enSUB,~inst[7],inst[6]); //01
+	and(enMOV,inst[7],inst[6]); //11
+	
+	wire enA,enB,enC,enD;
+	wire [7:0] ff_in;
+	wire [7:0] output_data;
+	outdata o1(enOUT,inst[1:0],output_data,aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7,cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	assign out=output_data;
+	
+	//inst[5:4] // desitnation
+	//inst[3:2],inst[1:0] // source 1,2	
+	wire [7:0] output_sum;
+	wire enAsum,enBsum,enCsum,enDsum;
+	add_out add1(enADD,inst[5:4],inst[3:2],inst[1:0],enAsum,enBsum,enCsum,enDsum,output_sum,aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7,cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	//assign out=output_sum;  // works only if out has not been assigned earlier
+	
+	wire enAmov,enBmov,enCmov,enDmov;
+	wire [7:0] output_mov;
+	mov_out mov1(enMOV,inst[3:2],inst[1:0],enAmov,enBmov,enCmov,enDmov,output_mov,aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7,cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	
+	wire [7:0] output_sub;
+	wire enAsub,enBsub,enCsub,enDsub;
+	sub_out sub1(enSUB,inst[5:4],inst[3:2],inst[1:0],enAsub,enBsub,enCsub,enDsub,output_sub,aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7,cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	
+	wire enAin,enBin,enCin,enDin; //enAin=enable A in
+	INdata i1(enIN,inst[1:0],enAin,enBin,enCin,enDin);
+	
+	assign ff_in[0]=(enADD&output_sum[0]) | (enIN&data_in[0]) | (enMOV&output_mov[0]) | (enSUB&output_sub[0]);
+	assign ff_in[1]=(enADD&output_sum[1]) | (enIN&data_in[1]) | (enMOV&output_mov[1]) | (enSUB&output_sub[1]);
+	assign ff_in[2]=(enADD&output_sum[2]) | (enIN&data_in[2]) | (enMOV&output_mov[2]) | (enSUB&output_sub[2]);
+	assign ff_in[3]=(enADD&output_sum[3]) | (enIN&data_in[3]) | (enMOV&output_mov[3]) | (enSUB&output_sub[3]);
+	assign ff_in[4]=(enADD&output_sum[4]) | (enIN&data_in[4]) | (enMOV&output_mov[4]) | (enSUB&output_sub[4]);
+	assign ff_in[5]=(enADD&output_sum[5]) | (enIN&data_in[5]) | (enMOV&output_mov[5]) | (enSUB&output_sub[5]);
+	assign ff_in[6]=(enADD&output_sum[6]) | (enIN&data_in[6]) | (enMOV&output_mov[6]) | (enSUB&output_sub[6]);
+	assign ff_in[7]=(enADD&output_sum[7]) | (enIN&data_in[7]) | (enMOV&output_mov[7]) | (enSUB&output_sub[7]);
+
+	assign enA= enAsum | enAin | enAmov | enAsub;
+	assign enB= enBsum | enBin | enBmov | enBsub;
+	assign enC= enCsum | enCin | enCmov | enCsub;
+	assign enD= enDsum | enDin | enDmov | enDsub;
+
+	jk_ff a0(ff_in[0],~ff_in[0],enA, clk, aq0);  // j,k,enable, clk, q  
+	jk_ff a1(ff_in[1],~ff_in[1],enA, clk, aq1);
+	jk_ff a2(ff_in[2],~ff_in[2],enA, clk, aq2);
+	jk_ff a3(ff_in[3],~ff_in[3],enA, clk, aq3);  
+	jk_ff a4(ff_in[4],~ff_in[4],enA, clk, aq4);
+	jk_ff a5(ff_in[5],~ff_in[5],enA, clk, aq5);
+	jk_ff a6(ff_in[6],~ff_in[6],enA, clk, aq6);
+	jk_ff a7(ff_in[7],~ff_in[7],enA, clk, aq7);
+	
+	jk_ff b0(ff_in[0],~ff_in[0],enB, clk, bq0);  // j,k,enable, clk, q  
+	jk_ff b1(ff_in[1],~ff_in[1],enB, clk, bq1);
+	jk_ff b2(ff_in[2],~ff_in[2],enB, clk, bq2);
+	jk_ff b3(ff_in[3],~ff_in[3],enB, clk, bq3);  
+	jk_ff b4(ff_in[4],~ff_in[4],enB, clk, bq4);
+	jk_ff b5(ff_in[5],~ff_in[5],enB, clk, bq5);
+	jk_ff b6(ff_in[6],~ff_in[6],enB, clk, bq6);
+	jk_ff b7(ff_in[7],~ff_in[7],enB, clk, bq7);
+	
+	jk_ff c0(ff_in[0],~ff_in[0],enC, clk, cq0);  // j,k,enable, clk, q  
+	jk_ff c1(ff_in[1],~ff_in[1],enC, clk, cq1);
+	jk_ff c2(ff_in[2],~ff_in[2],enC, clk, cq2);
+	jk_ff c3(ff_in[3],~ff_in[3],enC, clk, cq3);  
+	jk_ff c4(ff_in[4],~ff_in[4],enC, clk, cq4);
+	jk_ff c5(ff_in[5],~ff_in[5],enC, clk, cq5);
+	jk_ff c6(ff_in[6],~ff_in[6],enC, clk, cq6);
+	jk_ff c7(ff_in[7],~ff_in[7],enC, clk, cq7);
+	
+	jk_ff d0(ff_in[0],~ff_in[0],enD, clk, dq0);  // j,k,enable, clk, q  
+	jk_ff d1(ff_in[1],~ff_in[1],enD, clk, dq1);
+	jk_ff d2(ff_in[2],~ff_in[2],enD, clk, dq2);
+	jk_ff d3(ff_in[3],~ff_in[3],enD, clk, dq3);  
+	jk_ff d4(ff_in[4],~ff_in[4],enD, clk, dq4);
+	jk_ff d5(ff_in[5],~ff_in[5],enD, clk, dq5);
+	jk_ff d6(ff_in[6],~ff_in[6],enD, clk, dq6);
+	jk_ff d7(ff_in[7],~ff_in[7],enD, clk, dq7);
+endmodule
+
+
+module sub_out(
+input enSUB,
+input [1:0] destination,
+input [1:0] source1,
+input [1:0] source2,
+output enA,enB,enC,enD,
+output [7:0] out,
+input aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,
+input bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7, 
+input cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,
+input dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+
+	wire [7:0] s1,s2; //fetch data 
+	outdata o_s2(enSUB,source2,s2,aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7,cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	outdata o_s1(enSUB,source1,s1,aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7,cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	
+	//s1-s2,cin=1
+	Adder sub_out(s1,~s2,1'b1,out,cout); //a,b,cin,sum,cout
+	/*	wire [7:0] temp;
+	Adder sub_out(s1,~s2,1,temp,cout); //a,b,cin,sum,cout
+	assign out=temp;
+	Adder final_out(~temp,0,1,out,cout2);
+	*/
+	INdata i_sub(enSUB,destination,enA,enB,enC,enD);
+	
+endmodule
+
+module mov_out(
+input enMOV,
+input [1:0] destination,
+input [1:0] source,
+output enA,enB,enC,enD,
+output [7:0] out,
+input aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,
+input bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7, 
+input cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,
+input dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+
+	outdata o_s1(enMOV,source,out,aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7,cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	INdata i_mov(enMOV,destination,enA,enB,enC,enD);
+	
+endmodule
+
+module add_out(
+input enADD,
+input [1:0] destination,
+input [1:0] source1,
+input [1:0] source2,
+output enA,enB,enC,enD,
+output [7:0] out,
+input aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,
+input bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7, 
+input cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,
+input dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+
+	wire [7:0] s1,s2; //fetch data 
+	//wire cout;
+	outdata o_s2(enADD,source2,s2,aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7,cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	outdata o_s1(enADD,source1,s1,aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7,cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	//COUT IS OPEN
+	Adder sum_out(s1,s2,1'b0,out,cout); //a,b,cin,sum,cout
+	INdata i_sum(enADD,destination,enA,enB,enC,enD);
+	
+endmodule
+
+
+module outdata(
+input enOUT,
+input [1:0] sel,
+output [7:0] out,
+input aq0,aq1,aq2,aq3,aq4,aq5,aq6,aq7,
+input bq0,bq1,bq2,bq3,bq4,bq5,bq6,bq7, 
+input cq0,cq1,cq2,cq3,cq4,cq5,cq6,cq7,
+input dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7);
+	//1:4 DeMUX
+	wire enA,enB,enC,enD;
+	assign enA = (~sel[0]) & (~sel[1]) &enOUT; //can be done using and gate too
+	assign enB = (~sel[1]) & sel[0] &enOUT;
+	assign enC = sel[1] & (~sel[0]) &enOUT;
+	assign enD = sel[1] & sel[0] &enOUT;
+	
+	assign out[0]=(aq0&enA) | (bq0&enB) |(cq0&enC) | (dq0&enD);
+	assign out[1]=(aq1&enA) | (bq1&enB) |(cq1&enC) | (dq1&enD);
+	assign out[2]=(aq2&enA) | (bq2&enB) |(cq2&enC) | (dq2&enD);
+	assign out[3]=(aq3&enA) | (bq3&enB) |(cq3&enC) | (dq3&enD);
+	assign out[4]=(aq4&enA) | (bq4&enB) |(cq4&enC) | (dq4&enD);
+	assign out[5]=(aq5&enA) | (bq5&enB) |(cq5&enC) | (dq5&enD);
+	assign out[6]=(aq6&enA) | (bq6&enB) |(cq6&enC) | (dq6&enD);
+	assign out[7]=(aq7&enA) | (bq7&enB) |(cq7&enC) | (dq7&enD);
+
+endmodule
+
+module INdata( input enIN,
+					input [1:0] sel,
+					output enA,enB,enC,enD);
+					
+	assign enA = (~sel[0]) & (~sel[1]) &enIN;  
+	assign enB = (~sel[1]) & sel[0] &enIN;
+	assign enC = sel[1] & (~sel[0]) &enIN;
+	assign enD = sel[1] & sel[0] &enIN;
+endmodule					
+
+module jk_ff( input j, input k,input enable, input clk, output q);  
+   reg q;  
+	wire jin,kin;
+	assign jin= (j&enable);
+	assign kin= (k&enable);
+   always @ (posedge clk )  
+		case ({jin,kin})  
+			2'b00 :  q <= q;  
+			2'b01 :  q <= 0;  
+			2'b10 :  q <= 1;  
+			2'b11 :  q <= ~q;  
+		endcase  
+		
+endmodule  
+
+/*
+module jk_ff(input j, input k,input enable, input clk, output q); 
+
+	wire jin,kin;
+	assign jin= (j&enable);
+	assign kin= (k&enable);
+	
+	wire nand1_out; // output from nand1
+	wire nand2_out; // output from nand2
+
+	nand(nand1_out, jin,clk,qbar);
+	nand(nand2_out, kin,clk,q);
+	nand(q,qbar,nand1_out);
+	nand(qbar,q,nand2_out);
+
+endmodule
+*/
+
+module Adder( a,b,cin,
+				 sum,cout);  // dont do input a,b here
+	input [7:0]a,b;
+	input cin;
+	output wire [7:0]sum;
+	output cout;
+	FullAdder FA1(a[0],b[0],cin,sum[0],cout1);  //FA1 is an instance of Fulladder module
+	FullAdder FA2(a[1],b[1],cout1,sum[1],cout2);
+	FullAdder FA3(a[2],b[2],cout2,sum[2],cout3);
+	FullAdder FA4(a[3],b[3],cout3,sum[3],cout4);
+	FullAdder FA5(a[4],b[4],cout4,sum[4],cout5);
+	FullAdder FA6(a[5],b[5],cout5,sum[5],cout6);
+	FullAdder FA7(a[6],b[6],cout6,sum[6],cout7);
+	FullAdder FA8(a[7],b[7],cout7,sum[7],cout);
+
+endmodule
+
+module FullAdder(a,b,cin,sum,cout);
+	input a,b,cin;
+	output wire sum,cout;
+	wire s1,c1,c2,c3;
+	xor(s1,a,b);
+	xor(sum,s1,cin);
+	and(c1,a,b);
+	and(c2,b,cin);
+	and(c3,a,cin);
+	or(cout,c1,c2,c3);
+endmodule

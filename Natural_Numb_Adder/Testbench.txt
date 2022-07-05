@@ -1,0 +1,36 @@
+`timescale 1 ns/1 ps
+module main_testbench;
+
+	// DEFINING THE INPUTS
+	reg[14:0] inp;
+    wire [14:0] sum;
+	reg clock, rst;
+
+    //MAIN MODULE 
+	NAdder A(
+	
+    .sum(sum),
+    .clock(clock),
+	.N(inp),
+	.rst(rst)
+	
+	);
+
+
+    //INITIALIZING THE INPUTS TO OUR TESTBENCH
+	initial begin
+        clock = 1'b0;
+        rst = 1'b0;
+		inp = 15'd9; 
+		//inp = 15'b000000000000111; 
+	end
+	
+	always #1
+	begin
+		clock = ~clock;
+	end
+	initial begin
+	$monitor("t=%2d n=%3d, out=%5d \n",$time,inp,sum);
+	end
+endmodule
+

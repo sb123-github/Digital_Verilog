@@ -1,0 +1,107 @@
+`timescale 1ns / 1ps
+
+////////////////////////////////////////////////////////////////////////////////
+/*
+Sreyan Biswas
+Processor in structural design
+*/
+
+// Create Date:   14:12:23 02/27/2022
+// Design Name:   processor
+// Project Name:  p4_try3
+//
+// Verilog Test Fixture created by ISE for module: processor
+
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+module test1;
+
+	// Inputs
+	reg [7:0] data_in;
+	reg [7:0] inst;
+	reg clk;
+
+	// Outputs
+	wire [7:0] out;
+	always #1 clk = ~clk;  
+	
+	// Instantiate the Unit Under Test (UUT)
+	processor uut (
+		.data_in(data_in), 
+		.out(out), 
+		.inst(inst), 
+		.clk(clk)
+	);
+
+	initial begin
+		// Initialize Inputs
+		data_in = 0;
+		inst = 0;
+		clk = 0;
+		
+		#2
+		$display("input 5 to A");
+		data_in = 8'd5;
+		inst = 8'b10000000;
+		#2
+		data_in = 8'd6;
+		$display("input 6 to B");
+		inst = 8'b10000001;
+		
+		#2
+		$display("output A");
+		inst = 8'b10100000;
+		#2
+		$display("ADD C=A+B");  //c=11,a=5,b=6
+		inst = 8'b00100001; 
+		
+		#2
+		$display("output C");
+		inst = 8'b10100010;
+				
+		#2
+		$display("move C to D");
+		inst = 8'b11001110;
+		
+		
+		#2
+		$display("output D");
+		inst = 8'b10100011;
+
+		#2
+		$display("SUB D=C-A"); //11-5=6
+		inst = 8'b01111000; 
+		
+		#2
+		$display("output D");
+		inst = 8'b10100011;
+		
+		#2
+		data_in = 8'd15;
+		$display("input 15 to B");
+		inst = 8'b10000001;
+		
+		#2
+		$display("output B");
+		inst = 8'b10100001;
+		
+		#2
+		$display("output A");
+		inst = 8'b10100000;
+		
+		#2
+		$display("SUB C=B-A"); //15-5=10
+		inst = 8'b01100100;  // we cant do B=B-A bcoz we dont store the value in some temporary register. 
+		
+		#2
+		$display("output C"); 
+		inst = 8'b10100010;
+				
+		
+
+	end
+   initial $monitor("time=%g,inst=%b, out=%d",$time,inst,out);
+   initial #100 $finish;
+endmodule
+
