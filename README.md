@@ -2,7 +2,7 @@
 
 #### Project 1: Processor
 
-Designed a 8-bit processor to perform:Addition,Subtraction,Shift,Input,Fetchoperations on 4 registers with Verilog Structural modelling
+Designed a 8-bit processor to perform:Addition,Subtraction,Shift,Input,Fetch operations on 4 registers with Verilog Structural modelling
 
 #### Project 2: Adder of first N natural numbers
 
